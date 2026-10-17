@@ -143,6 +143,61 @@ label.f textarea { resize: vertical; min-height: 64px; }
 .err { color: var(--busy); font-size: .88rem; margin: 0; }
 .actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
 .actions .right { display: flex; gap: 8px; margin-left: auto; }
+/* Monthly revenue */
+.mchart { position: relative; min-height: 230px; }
+.mchart svg { display: block; width: 100%; height: auto; }
+.mchart .lbl { fill: var(--muted); font-size: 12px; font-family: var(--font-body); }
+.mchart .val { fill: var(--ink); font-size: 12px; font-weight: 600; font-family: var(--font-body); }
+.mchart .grid { stroke: var(--line); stroke-width: 1; }
+.mchart g.mo { cursor: pointer; }
+.mchart g.mo:hover .hit, .mchart g.mo.cur .hit { fill: var(--accent-soft); }
+.mchart g.mo.cur .lbl { fill: var(--accent); font-weight: 600; }
+.tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgb(0 0 0 / .14); padding: 6px 10px; font-size: .8rem; display: grid; gap: 2px; white-space: nowrap; z-index: 2; }
+.tip b { font-weight: 600; }
+.tip span { display: flex; align-items: center; gap: 6px; }
+.tablebox.plain { max-height: none; }
+table.mt td, table.mt th { white-space: nowrap; }
+table.mt tbody tr.cur td { background: var(--accent-soft); }
+table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
+
+/* Phones */
+@media (max-width: 600px) {
+  .wrap { gap: 14px; padding-block: 14px 32px; }
+  .brand h1 { font-size: 1.3rem; }
+  .brand p { font-size: .82rem; }
+  header.top .btn.primary { width: 100%; min-height: 44px; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .kpi:first-child { grid-column: 1 / -1; }
+  .kpi { padding: 10px 12px; }
+  .kpi .val { font-size: 1.3rem; }
+  .card { padding: 12px; }
+  .cardhead { align-items: stretch; }
+  .monthnav { width: 100%; justify-content: space-between; }
+  .monthnav button { width: 44px; height: 40px; }
+  .cal { gap: 3px; }
+  .day { min-height: 54px; padding: 4px 3px; }
+  /* On phones the room squares are status dots; tapping the day opens the room list below. */
+  .rc { pointer-events: none; font-size: 0; height: 9px; padding: 0; border-radius: 3px; }
+  .slot { padding: 10px; }
+  .slot .btn { min-height: 40px; }
+  .filters .chip { min-height: 34px; }
+  .search { flex-basis: 100%; min-height: 40px; }
+  .overlay { place-items: end center; padding-bottom: 0; }
+  .sheet { width: 100%; border-radius: 14px 14px 0 0; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+  label.f input, label.f select, label.f textarea { font-size: 16px; min-height: 42px; }
+  .actions .btn { min-height: 44px; }
+  .tablebox.stackbox { max-height: none; border: 0; overflow: visible; }
+  table.stack thead { display: none; }
+  table.stack, table.stack tbody { display: block; }
+  table.stack tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; }
+  table.stack td { display: block; border: 0; padding: 0; text-align: left; min-width: 0; overflow-wrap: anywhere; }
+  table.stack td.hide-sm { display: block; }
+  table.stack td[data-label]::before { content: attr(data-label); display: block; font-size: .72rem; color: var(--muted); }
+  table.stack td.g { grid-column: 1 / -1; order: -1; font-weight: 600; font-size: .95rem; }
+  table.stack td.nt { grid-column: 1 / -1; max-width: none; }
+  table.stack td.nt:empty, table.stack td.ph:empty { display: none; }
+  table.stack td.empty { grid-column: 1 / -1; text-align: center; }
+}
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 8px; z-index: 60; font-size: .9rem; }
 </style>
 
@@ -189,6 +244,25 @@ label.f textarea { resize: vertical; min-height: 64px; }
     </section>
   </div>
 
+  <section class="card" id="monthly">
+    <div>
+      <h2>สรุปรายได้รายเดือน</h2>
+      <p class="note">ยอดค่าห้องทั้งหมดในแต่ละเดือน แท่งสีเขียวคือรับเงินแล้ว สีแดงคือยังค้าง กดที่แท่งหรือแถวเพื่อเปิดเดือนนั้น</p>
+    </div>
+    <div class="legend"><span><i class="sw free"></i>รับเงินแล้ว</span><span><i class="sw busy"></i>ค้างชำระ</span></div>
+    <div class="mchart" id="mChart"></div>
+    <div class="tablebox plain">
+      <table class="mt">
+        <thead><tr>
+          <th>เดือน</th><th class="r">ห้อง-คืน</th><th class="r">อัตราเข้าพัก</th>
+          <th class="r">ยอดรวม</th><th class="r">รับแล้ว</th><th class="r">ค้างชำระ</th><th class="r">เฉลี่ย/คืน</th>
+        </tr></thead>
+        <tbody id="mRows"></tbody>
+        <tfoot id="mFoot"></tfoot>
+      </table>
+    </div>
+  </section>
+
   <section class="card" id="list">
     <div class="cardhead">
       <div>
@@ -205,8 +279,8 @@ label.f textarea { resize: vertical; min-height: 64px; }
       <label class="chip"><input type="checkbox" id="allMonths"> ทุกเดือน</label>
       <input class="search" id="q" type="search" placeholder="ค้นหาชื่อ เบอร์โทร หมายเหตุ" aria-label="ค้นหา">
     </div>
-    <div class="tablebox">
-      <table>
+    <div class="tablebox stackbox">
+      <table class="stack">
         <thead><tr>
           <th>วันที่</th><th>ห้อง</th><th>ผู้จอง</th><th class="hide-sm">โทร</th>
           <th class="r">ราคา</th><th class="r">รับแล้ว</th><th class="r">คงค้าง</th>
@@ -292,7 +366,115 @@ label.f textarea { resize: vertical; min-height: 64px; }
     state.y = Number(target.slice(0, 4)); state.m = Number(target.slice(5, 7)) - 1;
   }
 
-  function render() { renderKpis(); renderCalendar(); renderDay(); renderPayments(); renderTable(); }
+  function render() { renderKpis(); renderCalendar(); renderDay(); renderPayments(); renderMonthly(); renderTable(); }
+
+  // ---------- monthly revenue ----------
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const sv = (tag, attrs, text) => { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; };
+  const compact = (n) => n >= 10000 ? '฿' + (n / 1000).toLocaleString('th-TH', { maximumFractionDigits: 1 }) + 'k' : baht(n);
+  const monthLabel = (key, long) => { const [y, m] = key.split('-').map(Number); return long ? `${TH_MONTHS[m - 1]} ${y + 543}` : `${TH_SHORT[m - 1]} ${String(y + 543).slice(2)}`; };
+
+  function monthlyData() {
+    const by = new Map();
+    for (const b of state.bookings.values()) {
+      const k = b.date.slice(0, 7);
+      const g = by.get(k) || { nights: 0, rev: 0, got: 0, owe: 0 };
+      g.nights++; g.rev += b.price || 0; g.got += Math.min(b.paid || 0, b.price || 0); g.owe += owing(b);
+      by.set(k, g);
+    }
+    const keys = [...by.keys()].sort();
+    if (!keys.length) return [];
+    const out = [];
+    let [y, m] = keys[0].split('-').map(Number);
+    const last = keys[keys.length - 1];
+    for (;;) {
+      const k = `${y}-${pad(m)}`;
+      const days = new Date(y, m, 0).getDate();
+      out.push({ key: k, days, ...(by.get(k) || { nights: 0, rev: 0, got: 0, owe: 0 }) });
+      if (k === last) break;
+      m++; if (m > 12) { m = 1; y++; }
+    }
+    return out;
+  }
+
+  function renderMonthly() {
+    const box = $('mChart'), rowsEl = $('mRows'), foot = $('mFoot');
+    const data = monthlyData();
+    const curKey = `${state.y}-${pad(state.m + 1)}`;
+    if (!data.length) {
+      box.replaceChildren(el('p', 'note', state.loaded ? 'ยังไม่มีการจอง เพิ่มการจองแล้วสรุปรายเดือนจะแสดงที่นี่' : ''));
+      rowsEl.replaceChildren(); foot.replaceChildren(); return;
+    }
+    // chart
+    const W = Math.max(280, box.clientWidth || 600), H = 230, top = 26, bottom = 30, side = 8;
+    const ih = H - top - bottom, band = (W - side * 2) / data.length;
+    const bw = Math.min(56, band * 0.62);
+    const max = Math.max(1, ...data.map((d) => d.rev));
+    const y = (v) => ih * v / max;
+    const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'กราฟรายได้รายเดือน' });
+    svg.append(sv('line', { class: 'grid', x1: side, x2: W - side, y1: top + ih + 0.5, y2: top + ih + 0.5 }));
+    const showVal = band >= 46;
+    const labelEvery = Math.ceil(44 / band);
+    data.forEach((d, i) => {
+      const cx = side + band * i + band / 2;
+      const g = sv('g', { class: 'mo' + (d.key === curKey ? ' cur' : ''), 'data-key': d.key, tabindex: 0 });
+      g.append(sv('rect', { class: 'hit', x: cx - band / 2 + 1, y: 2, width: band - 2, height: H - 4, rx: 6, fill: 'transparent' }));
+      const hg = y(d.got), ho = y(d.owe), x0 = cx - bw / 2, base = top + ih;
+      if (hg > 0) g.append(sv('rect', { x: x0, y: base - hg, width: bw, height: hg, fill: 'var(--free)', rx: ho > 0 ? 0 : 4 }));
+      if (ho > 0) g.append(sv('rect', { x: x0, y: base - hg - ho, width: bw, height: ho, fill: 'var(--busy)', rx: 4 }));
+      if (hg > 0 && ho > 0) g.append(sv('rect', { x: x0, y: base - hg - Math.min(4, ho), width: bw, height: Math.min(4, ho), fill: 'var(--busy)' }));
+      if (showVal && d.rev) g.append(sv('text', { class: 'val', x: cx, y: base - hg - ho - 7, 'text-anchor': 'middle' }, compact(d.rev)));
+      if (i % labelEvery === 0 || d.key === curKey) g.append(sv('text', { class: 'lbl', x: cx, y: H - 10, 'text-anchor': 'middle' }, monthLabel(d.key)));
+      g.addEventListener('pointerenter', () => showTip(d, cx, W));
+      g.addEventListener('pointerleave', hideTip);
+      g.addEventListener('focus', () => showTip(d, cx, W));
+      g.addEventListener('blur', hideTip);
+      svg.append(g);
+    });
+    const tip = el('div', 'tip'); tip.hidden = true; tip.id = 'mTip';
+    box.replaceChildren(svg, tip);
+
+    // table
+    rowsEl.replaceChildren(...data.map((d) => {
+      const tr = el('tr', d.key === curKey ? 'cur' : ''); tr.dataset.key = d.key;
+      const ow = el('td', 'r', d.owe ? baht(d.owe) : '–'); if (d.owe) ow.style.color = 'var(--busy)';
+      tr.append(el('td', null, monthLabel(d.key, true)), el('td', 'r', String(d.nights)),
+        el('td', 'r', Math.round(d.nights / (d.days * ROOMS.length) * 100) + '%'),
+        el('td', 'r', baht(d.rev)), el('td', 'r', baht(d.got)), ow,
+        el('td', 'r', d.nights ? baht(d.rev / d.nights) : '–'));
+      return tr;
+    }));
+    const t = data.reduce((a, d) => ({ n: a.n + d.nights, cap: a.cap + d.days * ROOMS.length, rev: a.rev + d.rev, got: a.got + d.got, owe: a.owe + d.owe }), { n: 0, cap: 0, rev: 0, got: 0, owe: 0 });
+    const fr = el('tr');
+    fr.append(el('td', null, 'รวมทุกเดือน'), el('td', 'r', String(t.n)), el('td', 'r', Math.round(t.n / t.cap * 100) + '%'),
+      el('td', 'r', baht(t.rev)), el('td', 'r', baht(t.got)), el('td', 'r', t.owe ? baht(t.owe) : '–'), el('td', 'r', t.n ? baht(t.rev / t.n) : '–'));
+    foot.replaceChildren(fr);
+  }
+
+  function showTip(d, cx, W) {
+    const tip = $('mTip'); if (!tip) return;
+    const sw = (c) => { const i = el('i', 'sw'); i.style.background = c; return i; };
+    const l1 = el('span'); l1.append(sw('var(--free)'), `รับแล้ว ${baht(d.got)}`);
+    const l2 = el('span'); l2.append(sw('var(--busy)'), `ค้าง ${baht(d.owe)}`);
+    tip.replaceChildren(el('b', null, monthLabel(d.key, true)), el('span', null, `ยอดรวม ${baht(d.rev)} · ${d.nights} ห้อง-คืน`), l1, l2);
+    tip.hidden = false;
+    const bw = $('mChart').clientWidth, px = cx / W * bw, tw = tip.offsetWidth;
+    tip.style.left = Math.max(0, Math.min(bw - tw, px - tw / 2)) + 'px';
+    tip.style.top = '0px';
+  }
+  function hideTip() { const t = $('mTip'); if (t) t.hidden = true; }
+
+  function goMonth(key) {
+    state.y = Number(key.slice(0, 4)); state.m = Number(key.slice(5, 7)) - 1;
+    render();
+    $('calendar').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  $('mChart').addEventListener('click', (e) => { const g = e.target.closest('g.mo'); if (g) goMonth(g.dataset.key); });
+  $('mChart').addEventListener('keydown', (e) => { const g = e.target.closest('g.mo'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); goMonth(g.dataset.key); } });
+  $('mRows').addEventListener('click', (e) => { const tr = e.target.closest('tr[data-key]'); if (tr) goMonth(tr.dataset.key); });
+  let lastW = 0;
+  new ResizeObserver(() => { const w = $('mChart').clientWidth; if (Math.abs(w - lastW) > 4) { lastW = w; renderMonthly(); } }).observe($('mChart'));
+  const phone = window.matchMedia('(max-width: 600px)');
 
   function renderKpis() {
     const list = monthBookings();
@@ -419,9 +601,17 @@ label.f textarea { resize: vertical; min-height: 64px; }
       const st = el('td'); st.append(el('span', 'pill ' + b.status, STATUS[b.status] || '-'));
       const ow = owing(b);
       const owTd = el('td', 'r', ow ? baht(ow) : '–'); if (ow) owTd.style.color = 'var(--busy)';
-      tr.append(el('td', 'num', thDate(b.date)), el('td', null, String(b.room)), el('td', null, b.guest || '-'),
-        el('td', 'hide-sm num', b.phone || ''), el('td', 'r', b.price ? baht(b.price) : '–'), el('td', 'r', b.paid ? baht(b.paid) : '–'),
-        owTd, st, el('td', 'hide-sm', METHOD[b.method] || METHOD.unknown), el('td', 'hide-sm nt', b.note || ''));
+      const cells = [
+        [el('td', 'g', b.guest || '-'), null],
+        [el('td', 'num', thDate(b.date)), 'วันที่'], [el('td', null, String(b.room)), 'ห้อง'], [st, 'สถานะ'],
+        [el('td', 'r', b.price ? baht(b.price) : '–'), 'ราคา'], [el('td', 'r', b.paid ? baht(b.paid) : '–'), 'รับแล้ว'], [owTd, 'คงค้าง'],
+        [el('td', 'hide-sm num ph', b.phone || ''), 'โทร'], [el('td', 'hide-sm', METHOD[b.method] || METHOD.unknown), 'ช่องทาง'],
+        [el('td', 'hide-sm nt', b.note || ''), null],
+      ];
+      for (const [td, label] of cells) if (label) td.dataset.label = label;
+      // Desktop column order: date, room, guest, phone, price, paid, owing, status, method, note
+      const [g, d, r, s, p, pd, o, ph, m, n] = cells.map((c) => c[0]);
+      tr.append(d, r, g, ph, p, pd, o, s, m, n);
       return tr;
     }));
   }
@@ -506,7 +696,10 @@ label.f textarea { resize: vertical; min-height: 64px; }
     const chip = e.target.closest('.rc');
     if (chip) { state.sel = chip.dataset.date; render(); openEditor(chip.dataset.date, Number(chip.dataset.room)); return; }
     const day = e.target.closest('.day[data-date]');
-    if (day) { state.sel = day.dataset.date; renderCalendar(); renderDay(); }
+    if (day) {
+      state.sel = day.dataset.date; renderCalendar(); renderDay();
+      if (phone.matches) $('dayPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   });
   $('dayPanel').addEventListener('click', (e) => {
     const t = e.target.closest('[data-room]');
