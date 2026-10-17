@@ -143,6 +143,36 @@ label.f textarea { resize: vertical; min-height: 64px; }
 .err { color: var(--busy); font-size: .88rem; margin: 0; }
 .actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
 .actions .right { display: flex; gap: 8px; margin-left: auto; }
+/* Access */
+.app { display: grid; gap: 18px; }
+.hactions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.me { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); min-width: 0; max-width: 100%; }
+.me img, .person img { width: 28px; height: 28px; border-radius: 50%; flex: none; }
+.me .nm { font-size: .85rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14em; }
+.pill.role { background: var(--accent-soft); color: var(--accent); }
+.gate { max-width: 560px; justify-self: center; width: 100%; text-align: center; justify-items: center; padding-block: 28px; }
+.gate h2 { font-family: var(--font-display); font-size: 1.3rem; }
+.gtext { margin: 0; color: var(--muted); max-width: 46ch; }
+.acct { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px 4px 4px; }
+.acct img { width: 28px; height: 28px; border-radius: 50%; }
+.gactions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.plist { display: grid; gap: 8px; }
+.person { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
+.person .pn { min-width: 0; }
+.person .pn b { display: block; font-weight: 500; overflow-wrap: anywhere; }
+.person .pn span { display: block; font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
+.person .pa { display: flex; flex-wrap: wrap; gap: 6px; justify-content: end; }
+.person .pa .btn { padding: 4px 10px; font-size: .85rem; }
+.person select { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 4px 6px; }
+@media (max-width: 600px) {
+  .app { gap: 14px; }
+  .hactions { width: 100%; }
+  .hactions .btn { flex: 1 1 auto; min-height: 44px; }
+  .me { flex: 1 1 100%; }
+  .person { grid-template-columns: auto minmax(0, 1fr); }
+  .person .pa { grid-column: 1 / -1; justify-content: start; }
+}
+
 /* Monthly revenue */
 .mchart { position: relative; min-height: 230px; }
 .mchart svg { display: block; width: 100%; height: auto; }
@@ -165,7 +195,6 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
   .wrap { gap: 14px; padding-block: 14px 32px; }
   .brand h1 { font-size: 1.3rem; }
   .brand p { font-size: .82rem; }
-  header.top .btn.primary { width: 100%; min-height: 44px; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .kpi:first-child { grid-column: 1 / -1; }
   .kpi { padding: 10px 12px; }
@@ -207,9 +236,25 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
       <h1>J2House Nan · ปฏิทินการจองห้องพัก</h1>
       <p>4 ห้อง · ห้อง 1 เตียงเดี่ยว · ห้อง 2 ห้อง 3 คน · ห้อง 3 เตียงคู่ · ห้อง 4 ห้อง 3 คน</p>
     </div>
-    <button class="btn primary" id="addBtn" type="button">+ เพิ่มการจอง</button>
+    <div class="hactions">
+      <div class="me" id="who" hidden></div>
+      <button class="btn" id="accessBtn" type="button" hidden>จัดการสิทธิ์</button>
+      <button class="btn primary" id="addBtn" type="button" hidden>+ เพิ่มการจอง</button>
+    </div>
   </header>
   <div class="notice" id="notice" hidden></div>
+
+  <section class="card gate" id="gate">
+    <h2 id="gateTitle">กำลังตรวจสอบสิทธิ์…</h2>
+    <p id="gateText" class="gtext"></p>
+    <div id="gateAcct" class="acct" hidden></div>
+    <div class="gactions">
+      <button class="btn primary" id="reqBtn" type="button" hidden>ขอสิทธิ์เข้าใช้งาน</button>
+    </div>
+    <p class="err" id="gateErr" hidden></p>
+  </section>
+
+  <div class="app" id="app" hidden>
 
   <section class="kpis" id="kpis" aria-label="สรุปเดือนนี้"></section>
 
@@ -290,6 +335,20 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
       </table>
     </div>
   </section>
+  </div>
+</div>
+
+<div class="overlay" id="access" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="acTitle">
+    <h2 id="acTitle">จัดการสิทธิ์ผู้ใช้งาน</h2>
+    <p class="note">ผู้ใช้เข้าสู่ระบบ claude.ai ด้วยบัญชี Gmail ของตัวเอง เปิดลิงก์นี้ แล้วกด "ขอสิทธิ์เข้าใช้งาน" คำขอจะขึ้นที่นี่ให้คุณอนุมัติ</p>
+    <p class="sec">คำขอที่รออนุมัติ</p>
+    <div class="plist" id="reqList"></div>
+    <p class="sec">ผู้มีสิทธิ์ใช้งาน</p>
+    <div class="plist" id="memList"></div>
+    <p class="err" id="acErr" hidden></p>
+    <div class="actions"><div class="right"><button class="btn" type="button" id="acClose">ปิด</button></div></div>
+  </div>
 </div>
 
 <div class="overlay" id="editor" hidden>
@@ -312,6 +371,7 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
       <label class="f full">หมายเหตุ<textarea id="fNote"></textarea></label>
     </div>
     <div class="calcline" id="calc"></div>
+    <div class="calcline" id="edMeta" hidden></div>
     <p class="err" id="edErr" hidden></p>
     <div class="actions">
       <button class="btn danger" type="button" id="delBtn">ลบการจอง</button>
@@ -349,6 +409,9 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
 
   const state = { bookings: new Map(), y: null, m: null, sel: null, filter: 'all', q: '', allMonths: false, loaded: false, canWrite: true, editing: null };
   let db = null;
+  const ROLE = { owner: 'เจ้าของ', staff: 'พนักงาน (แก้ไขได้)', viewer: 'ดูอย่างเดียว' };
+  let user = null, me = null, canDataWrite = null, gateState = 'checking';
+  let members = new Map(), requests = new Map(), myRequest = null, membersLoaded = false, bookingsStarted = false;
 
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 2200); }
   function notice(msg) { const n = $('notice'); n.textContent = msg || ''; n.hidden = !msg; }
@@ -645,6 +708,15 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
     $('fNote').value = b?.note || '';
     $('delBtn').hidden = !b; $('delBtn').textContent = 'ลบการจอง'; $('delBtn').classList.remove('solid'); delArmed = false;
     $('edErr').hidden = true;
+    const meta = $('edMeta'); meta.hidden = true;
+    if (b && b.updatedBy && user) {
+      user.profiles([b.updatedBy]).then((ps) => {
+        const p = ps[b.updatedBy];
+        const when = b.updatedAt ? new Date(b.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+        meta.textContent = `แก้ไขล่าสุดโดย ${p.name || p.email || 'ผู้ใช้'}${when ? ' · ' + when : ''}`;
+        meta.hidden = false;
+      });
+    }
     updateCalc();
     $('editor').hidden = false;
     $('fGuest').focus();
@@ -662,7 +734,7 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
       room, guest, phone: $('fPhone').value.trim(),
       price: Math.max(0, Number($('fPrice').value) || 0), paid: Math.max(0, Number($('fPaid').value) || 0),
       status: $('fStatus').value, method: $('fMethod').value, note: $('fNote').value.trim(),
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(), updatedBy: me?.id || null,
     };
     const nights = state.editing ? 1 : Math.max(1, Math.min(30, Number($('fNights').value) || 1));
     const dates = Array.from({ length: nights }, (_, i) => addDays(date, i));
@@ -730,14 +802,32 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
   render();
 
   (async () => {
-    if (!window.claude || !claude.use) { notice('เปิดหน้านี้ใน Claude เพื่อดูและแก้ไขการจอง'); return; }
-    const [dbNs, user] = await Promise.all([claude.use('db'), claude.use('user')]);
-    db = dbNs;
-    if (!db) { notice('ยังโหลดข้อมูลการจองไม่ได้ กรุณาเข้าสู่ระบบแล้วเปิดหน้านี้ใหม่'); state.canWrite = false; $('addBtn').hidden = true; return; }
-    if (user) {
-      const can = await user.can('data.write');
-      if (can === false) { state.canWrite = false; $('addBtn').hidden = true; notice('คุณดูได้อย่างเดียว ขอสิทธิ์ผู้ร่วมแก้ไขจากเจ้าของเพื่อเพิ่มหรือแก้ไขการจอง'); }
+    if (!window.claude || !claude.use) { gateState = 'signin'; applyAccess(); return; }
+    const [dbNs, userNs] = await Promise.all([claude.use('db'), claude.use('user')]);
+    db = dbNs; user = userNs;
+    me = user ? await user.me() : null;
+    canDataWrite = user ? await user.can('data.write') : null;
+    if (!db || !me || !me.id) { gateState = 'signin'; applyAccess(); return; }
+    db.collection('members').limit(1000).onSnapshot((snap) => {
+      members = new Map(snap.docs.map((d) => [d.id, d.data()]));
+      membersLoaded = true;
+      applyAccess();
+    }, () => notice('การเชื่อมต่อข้อมูลหลุด กรุณาเปิดหน้านี้ใหม่'));
+    if (me.isOwner) {
+      db.collection('requests').limit(500).onSnapshot((snap) => {
+        requests = new Map(snap.docs.map((d) => [d.id, d.data()]));
+        applyAccess();
+      });
+    } else {
+      db.doc('requests/' + me.id).onSnapshot((snap) => { myRequest = snap.exists ? snap.data() : null; applyAccess(); });
     }
+    applyAccess();
+  })();
+
+  // ---------- access ----------
+  function startBookings() {
+    if (bookingsStarted || !db) return;
+    bookingsStarted = true;
     let first = true;
     db.collection('bookings').limit(1000).onSnapshot((snap) => {
       state.bookings = new Map(snap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]));
@@ -745,6 +835,123 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
       if (first) { first = false; pickStartMonth(); }
       render();
     }, () => notice('การเชื่อมต่อข้อมูลหลุด กรุณาเปิดหน้านี้ใหม่'));
-  })();
+  }
+
+  function role() {
+    if (!me || !me.id) return null;
+    if (me.isOwner) return 'owner';
+    return members.get(me.id)?.role || null;
+  }
+
+  function applyAccess() {
+    const r = role();
+    const allowed = !!r && !!ROLE[r];
+    $('app').hidden = !allowed;
+    $('gate').hidden = allowed;
+    state.canWrite = (r === 'owner' || r === 'staff') && canDataWrite !== false;
+    $('addBtn').hidden = !(allowed && state.canWrite);
+    $('accessBtn').hidden = r !== 'owner';
+    $('accessBtn').textContent = requests.size ? `จัดการสิทธิ์ (${requests.size})` : 'จัดการสิทธิ์';
+    renderWho(r);
+    if (allowed) {
+      notice(r === 'viewer' ? 'สิทธิ์ของคุณคือดูอย่างเดียว ติดต่อเจ้าของหากต้องการแก้ไขการจอง' : '');
+      startBookings(); render();
+    } else {
+      if (!$('editor').hidden) closeEditor();
+      renderGate();
+    }
+    if (!$('access').hidden) renderAccess();
+  }
+
+  function avatar(src) { const i = el('img'); if (src) i.src = src; i.alt = ''; return i; }
+
+  function renderWho(r) {
+    const w = $('who');
+    if (!me || !me.id) { w.hidden = true; return; }
+    w.replaceChildren(avatar(me.avatarUrl), el('span', 'nm', me.name || me.email || 'ผู้ใช้'));
+    if (r && ROLE[r]) w.append(el('span', 'pill role', ROLE[r]));
+    w.title = me.email || '';
+    w.hidden = false;
+  }
+
+  function renderGate() {
+    const t = $('gateTitle'), x = $('gateText'), acct = $('gateAcct'), btn = $('reqBtn');
+    btn.hidden = true; acct.hidden = true;
+    if (gateState === 'signin' || !me || !me.id) {
+      t.textContent = 'กรุณาเข้าสู่ระบบ';
+      x.textContent = 'เข้าสู่ระบบ claude.ai ด้วยบัญชี Google (Gmail) ที่เจ้าของเชิญไว้ แล้วเปิดลิงก์นี้อีกครั้ง';
+      return;
+    }
+    if (!membersLoaded) { t.textContent = 'กำลังตรวจสอบสิทธิ์…'; x.textContent = ''; return; }
+    acct.replaceChildren(avatar(me.avatarUrl), el('span', null, [me.name, me.email].filter(Boolean).join(' · ') || 'บัญชีของคุณ'));
+    acct.hidden = false;
+    t.textContent = 'บัญชีนี้ยังไม่ได้รับสิทธิ์ใช้งาน';
+    if (myRequest) {
+      x.textContent = 'ส่งคำขอแล้ว รอเจ้าของอนุมัติ เมื่ออนุมัติแล้วหน้านี้จะเปิดให้ใช้งานเอง';
+    } else {
+      x.textContent = 'กดขอสิทธิ์เพื่อส่งคำขอถึงเจ้าของ J2House Nan';
+      btn.hidden = false;
+    }
+  }
+
+  $('reqBtn').addEventListener('click', async () => {
+    const e = $('gateErr'); e.hidden = true;
+    try { await db.doc('requests/' + me.id).set({ at: new Date().toISOString() }); }
+    catch { e.textContent = 'ส่งคำขอไม่ได้ ขอให้เจ้าของแชร์ลิงก์นี้ให้บัญชีคุณในระดับ Contributor (ผู้ร่วมแก้ไข) ก่อน'; e.hidden = false; }
+  });
+
+  async function renderAccess() {
+    const reqIds = [...requests.keys()], memIds = [...members.keys()].filter((id) => id !== me.id);
+    const ps = await user.profiles([me.id, ...reqIds, ...memIds]);
+    const line = (id, sub) => {
+      const p = ps[id] || {};
+      const row = el('div', 'person');
+      const pn = el('div', 'pn');
+      pn.append(el('b', null, p.name || p.email || 'ผู้ใช้'), el('span', null, [p.name ? p.email : '', sub].filter(Boolean).join(' · ')));
+      row.append(avatar(p.avatarUrl), pn);
+      return row;
+    };
+    const btn = (label, cls, fn) => { const b = el('button', 'btn ' + (cls || ''), label); b.type = 'button'; b.addEventListener('click', fn); return b; };
+    const reqRows = reqIds.map((id) => {
+      const at = requests.get(id)?.at;
+      const row = line(id, at ? 'ขอเมื่อ ' + new Date(at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '');
+      const pa = el('div', 'pa');
+      pa.append(btn('อนุมัติ: พนักงาน', 'primary', () => approve(id, 'staff')),
+        btn('อนุมัติ: ดูอย่างเดียว', '', () => approve(id, 'viewer')),
+        btn('ปฏิเสธ', 'danger', () => act(() => db.doc('requests/' + id).delete())));
+      row.append(pa); return row;
+    });
+    $('reqList').replaceChildren(...(reqRows.length ? reqRows : [el('p', 'note', 'ไม่มีคำขอใหม่')]));
+    const ownerRow = line(me.id, 'คุณ');
+    const opa = el('div', 'pa'); opa.append(el('span', 'pill role', ROLE.owner)); ownerRow.append(opa);
+    const memRows = memIds.map((id) => {
+      const row = line(id, '');
+      const pa = el('div', 'pa');
+      const sel = el('select'); sel.setAttribute('aria-label', 'บทบาท');
+      sel.append(new Option(ROLE.staff, 'staff'), new Option(ROLE.viewer, 'viewer'));
+      sel.value = members.get(id).role;
+      sel.addEventListener('change', () => act(() => db.doc('members/' + id).update({ role: sel.value })));
+      const rm = btn('ถอนสิทธิ์', 'danger', () => {
+        if (!rm.dataset.armed) { rm.dataset.armed = '1'; rm.textContent = 'กดอีกครั้งเพื่อยืนยัน'; rm.classList.add('solid'); return; }
+        act(() => db.doc('members/' + id).delete());
+      });
+      pa.append(sel, rm); row.append(pa); return row;
+    });
+    $('memList').replaceChildren(ownerRow, ...memRows);
+  }
+
+  async function act(fn) {
+    const e = $('acErr'); e.hidden = true;
+    try { await fn(); } catch { e.textContent = 'บันทึกไม่สำเร็จ ลองอีกครั้ง'; e.hidden = false; }
+  }
+  function approve(id, r) {
+    return act(async () => {
+      await db.doc('members/' + id).set({ role: r, addedAt: new Date().toISOString(), addedBy: me.id });
+      await db.doc('requests/' + id).delete();
+    });
+  }
+  $('accessBtn').addEventListener('click', () => { $('access').hidden = false; $('acErr').hidden = true; renderAccess(); });
+  $('acClose').addEventListener('click', () => { $('access').hidden = true; });
+  $('access').addEventListener('click', (e) => { if (e.target === $('access')) $('access').hidden = true; });
 })();
 </script>
