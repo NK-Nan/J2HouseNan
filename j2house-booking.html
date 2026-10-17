@@ -1,0 +1,557 @@
+<title>J2House Nan Bookings</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Noto+Serif+Thai:wght@500;600&display=swap">
+<style>
+/* Layout: header + KPI strip, then calendar (left) beside payments (right), full-width booking table below. */
+:root {
+  --bg: #f5f6f8;
+  --panel: #ffffff;
+  --ink: #1d2233;
+  --muted: #5e6578;
+  --line: #dde0e8;
+  --accent: #2f3f7a;      /* Nan indigo, from the province's woven cloth */
+  --accent-soft: #e6e9f4;
+  --free: #1f8a4c;
+  --free-bg: #e2f4e9;
+  --busy: #c23a32;
+  --busy-bg: #fbe5e3;
+  --warn: #a8670b;
+  --warn-bg: #fbefd9;
+  --font-display: "Noto Serif Thai", Georgia, serif;
+  --font-body: "IBM Plex Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12141b; --panel: #1b1f2a; --ink: #e8eaf1; --muted: #9aa1b4; --line: #2e3443;
+  --accent: #9fb0ec; --accent-soft: #262d45;
+  --free: #4fc983; --free-bg: #173526; --busy: #f07a70; --busy-bg: #3d1d1b; --warn: #e8b260; --warn-bg: #3a2c14;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12141b; --panel: #1b1f2a; --ink: #e8eaf1; --muted: #9aa1b4; --line: #2e3443;
+  --accent: #9fb0ec; --accent-soft: #262d45;
+  --free: #4fc983; --free-bg: #173526; --busy: #f07a70; --busy-bg: #3d1d1b; --warn: #e8b260; --warn-bg: #3a2c14;
+  color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1240px; margin-inline: auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 18px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+.brand h1 { font-family: var(--font-display); font-weight: 600; font-size: 1.75rem; margin: 0; line-height: 1.2; text-wrap: balance; }
+.brand p { margin: 2px 0 0; color: var(--muted); }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 14px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--panel); font-weight: 500; }
+.btn.danger { color: var(--busy); }
+.btn.danger.solid { background: var(--busy); border-color: var(--busy); color: var(--panel); }
+.notice { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 8px 12px; font-size: .9rem; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 2px; }
+.kpi .lab { font-size: .82rem; color: var(--muted); }
+.kpi .val { font-family: var(--font-display); font-size: 1.6rem; font-weight: 500; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.kpi .sub { font-size: .8rem; color: var(--muted); }
+.kpi.bad .val { color: var(--busy); }
+.kpi.good .val { color: var(--free); }
+
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; min-width: 0; display: grid; gap: 12px; }
+.card h2 { font-size: 1.05rem; font-weight: 600; margin: 0; }
+.card .note { margin: 0; color: var(--muted); font-size: .85rem; }
+.cardhead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+
+.monthnav { display: flex; align-items: center; gap: 6px; }
+.monthnav .m { font-family: var(--font-display); font-weight: 600; min-width: 9.5em; text-align: center; }
+.monthnav button { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .82rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.sw.free { background: var(--free); } .sw.busy { background: var(--busy); }
+
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.dow { font-size: .78rem; color: var(--muted); text-align: center; padding-bottom: 2px; }
+.day { border: 1px solid var(--line); border-radius: 8px; padding: 5px; display: grid; gap: 4px; align-content: start; min-height: 74px; background: var(--panel); text-align: left; }
+.day.out { visibility: hidden; }
+.day.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.day.today .dn { color: var(--accent); }
+.dn { font-size: .82rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+.dn small { font-weight: 500; color: var(--muted); font-size: .72rem; }
+.rooms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; }
+.rc { border: 0; border-radius: 4px; font-size: .72rem; font-weight: 600; padding: 2px 0; text-align: center; line-height: 1.35; }
+.rc.free { background: var(--free-bg); color: var(--free); }
+.rc.busy { background: var(--busy); color: var(--panel); }
+.rc:hover { filter: brightness(.95); }
+@media (max-width: 520px) { .day { min-height: 60px; padding: 3px; } .rc { font-size: .65rem; } .dn small { display: none; } }
+
+.daypanel { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 8px; }
+.daypanel h3 { margin: 0; font-size: .95rem; font-weight: 600; }
+.slot { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); }
+.slot .dot { width: 10px; height: 10px; border-radius: 50%; }
+.slot.free .dot { background: var(--free); } .slot.busy .dot { background: var(--busy); }
+.slot .who { min-width: 0; }
+.slot .who b { display: block; font-weight: 500; overflow-wrap: anywhere; }
+.slot .who span { font-size: .8rem; color: var(--muted); }
+
+.pill { display: inline-block; font-size: .76rem; font-weight: 500; border-radius: 999px; padding: 1px 9px; white-space: nowrap; }
+.pill.paid { background: var(--free-bg); color: var(--free); }
+.pill.deposit { background: var(--warn-bg); color: var(--warn); }
+.pill.unpaid { background: var(--busy-bg); color: var(--busy); }
+.pill.m { background: var(--accent-soft); color: var(--accent); }
+
+.bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--line); }
+.bar i { display: block; height: 100%; }
+.statrows { display: grid; gap: 8px; }
+.statrow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; font-size: .9rem; }
+.statrow .amt { font-variant-numeric: tabular-nums; text-align: right; min-width: 6.5em; }
+.statrow .cnt { color: var(--muted); font-size: .8rem; text-align: right; min-width: 4em; }
+.sec { font-size: .8rem; color: var(--muted); letter-spacing: .02em; margin: 4px 0 0; }
+
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 3px 12px; font-size: .85rem; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+.search { flex: 1 1 200px; min-width: 0; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 6px 10px; }
+.tablebox { overflow: auto; max-height: 560px; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { position: sticky; top: 0; background: var(--panel); font-weight: 600; font-size: .8rem; color: var(--muted); white-space: nowrap; z-index: 1; }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
+tbody tr { cursor: pointer; }
+tbody tr:hover td { background: var(--accent-soft); }
+td.nt { color: var(--muted); max-width: 260px; }
+.empty { padding: 24px; text-align: center; color: var(--muted); }
+@media (max-width: 700px) { .hide-sm { display: none; } }
+
+.overlay { position: fixed; inset: 0; background: rgb(10 12 20 / .45); display: grid; place-items: center; z-index: 50;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.sheet { background: var(--panel); border-radius: 12px; border: 1px solid var(--line); width: min(560px, 100%); max-height: 100%; overflow: auto; padding: 18px; display: grid; gap: 14px; }
+.sheet h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; margin: 0; }
+.fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+.fgrid .full { grid-column: 1 / -1; }
+@media (max-width: 460px) { .fgrid { grid-template-columns: minmax(0, 1fr); } }
+label.f { display: grid; gap: 3px; font-size: .82rem; color: var(--muted); }
+label.f input, label.f select, label.f textarea { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 7px 9px; font-size: .95rem; min-width: 0; }
+label.f textarea { resize: vertical; min-height: 64px; }
+.calcline { font-size: .88rem; color: var(--muted); }
+.calcline b { color: var(--ink); font-weight: 600; }
+.err { color: var(--busy); font-size: .88rem; margin: 0; }
+.actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.actions .right { display: flex; gap: 8px; margin-left: auto; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 8px; z-index: 60; font-size: .9rem; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>J2House Nan · ปฏิทินการจองห้องพัก</h1>
+      <p>4 ห้อง · ห้อง 1 เตียงเดี่ยว · ห้อง 2 ห้อง 3 คน · ห้อง 3 เตียงคู่ · ห้อง 4 ห้อง 3 คน</p>
+    </div>
+    <button class="btn primary" id="addBtn" type="button">+ เพิ่มการจอง</button>
+  </header>
+  <div class="notice" id="notice" hidden></div>
+
+  <section class="kpis" id="kpis" aria-label="สรุปเดือนนี้"></section>
+
+  <div class="grid2">
+    <section class="card" id="calendar">
+      <div class="cardhead">
+        <div>
+          <h2>ปฏิทินห้องว่าง</h2>
+          <p class="note">กดที่ห้องเพื่อจองหรือแก้ไข กดที่วันเพื่อดูรายละเอียด</p>
+        </div>
+        <div class="monthnav">
+          <button type="button" id="prevM" aria-label="เดือนก่อน">‹</button>
+          <span class="m" id="mLabel">—</span>
+          <button type="button" id="nextM" aria-label="เดือนถัดไป">›</button>
+        </div>
+      </div>
+      <div class="legend"><span><i class="sw free"></i>ว่าง</span><span><i class="sw busy"></i>ไม่ว่าง (มีผู้จอง)</span></div>
+      <div class="cal" id="cal"></div>
+      <div class="daypanel" id="dayPanel"></div>
+    </section>
+
+    <section class="card" id="payments">
+      <div>
+        <h2>การชำระเงิน</h2>
+        <p class="note" id="payNote">ยอดของเดือนที่เลือก</p>
+      </div>
+      <div class="bar" id="payBar" aria-hidden="true"></div>
+      <p class="sec">ตามสถานะการชำระ</p>
+      <div class="statrows" id="byStatus"></div>
+      <p class="sec">ตามช่องทางชำระ</p>
+      <div class="statrows" id="byMethod"></div>
+    </section>
+  </div>
+
+  <section class="card" id="list">
+    <div class="cardhead">
+      <div>
+        <h2>รายละเอียดผู้เข้าพักและการชำระเงิน</h2>
+        <p class="note">1 แถว = 1 ห้องต่อ 1 คืน · กดที่แถวเพื่อแก้ไข</p>
+      </div>
+    </div>
+    <div class="filters">
+      <button class="chip" type="button" data-f="all" aria-pressed="true">ทั้งหมด</button>
+      <button class="chip" type="button" data-f="paid" aria-pressed="false">ชำระครบ</button>
+      <button class="chip" type="button" data-f="deposit" aria-pressed="false">มัดจำแล้ว</button>
+      <button class="chip" type="button" data-f="unpaid" aria-pressed="false">ยังไม่ชำระ</button>
+      <button class="chip" type="button" data-f="owing" aria-pressed="false">มียอดค้าง</button>
+      <label class="chip"><input type="checkbox" id="allMonths"> ทุกเดือน</label>
+      <input class="search" id="q" type="search" placeholder="ค้นหาชื่อ เบอร์โทร หมายเหตุ" aria-label="ค้นหา">
+    </div>
+    <div class="tablebox">
+      <table>
+        <thead><tr>
+          <th>วันที่</th><th>ห้อง</th><th>ผู้จอง</th><th class="hide-sm">โทร</th>
+          <th class="r">ราคา</th><th class="r">รับแล้ว</th><th class="r">คงค้าง</th>
+          <th>สถานะ</th><th class="hide-sm">ช่องทาง</th><th class="hide-sm">หมายเหตุ</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div class="overlay" id="editor" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="edTitle">
+    <h2 id="edTitle">เพิ่มการจอง</h2>
+    <div class="fgrid">
+      <label class="f">วันที่เข้าพัก<input type="date" id="fDate" required></label>
+      <label class="f">ห้อง<select id="fRoom"></select></label>
+      <label class="f" id="nightsWrap">จำนวนคืน<input type="number" id="fNights" min="1" max="30" value="1"></label>
+      <label class="f">ราคา/คืน (บาท)<input type="number" id="fPrice" min="0" step="10" inputmode="numeric"></label>
+      <label class="f full">ชื่อผู้จอง<input type="text" id="fGuest" autocomplete="off"></label>
+      <label class="f">เบอร์โทร<input type="tel" id="fPhone" autocomplete="off"></label>
+      <label class="f">รับเงินแล้ว/คืน (บาท)<input type="number" id="fPaid" min="0" step="10" inputmode="numeric"></label>
+      <label class="f">สถานะการชำระ<select id="fStatus">
+        <option value="paid">ชำระครบ</option><option value="deposit">มัดจำแล้ว</option><option value="unpaid">ยังไม่ชำระ</option>
+      </select></label>
+      <label class="f">ช่องทางชำระ<select id="fMethod">
+        <option value="transfer">โอนเงิน</option><option value="cash">เงินสด</option><option value="unknown">ไม่ระบุ</option>
+      </select></label>
+      <label class="f full">หมายเหตุ<textarea id="fNote"></textarea></label>
+    </div>
+    <div class="calcline" id="calc"></div>
+    <p class="err" id="edErr" hidden></p>
+    <div class="actions">
+      <button class="btn danger" type="button" id="delBtn">ลบการจอง</button>
+      <div class="right">
+        <button class="btn" type="button" id="cancelBtn">ยกเลิก</button>
+        <button class="btn primary" type="button" id="saveBtn">บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  const ROOMS = [
+    { n: 1, name: 'ห้อง 1', type: 'เตียงเดี่ยว' },
+    { n: 2, name: 'ห้อง 2', type: 'ห้อง 3 คน' },
+    { n: 3, name: 'ห้อง 3', type: 'เตียงคู่' },
+    { n: 4, name: 'ห้อง 4', type: 'ห้อง 3 คน' },
+  ];
+  const TH_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const TH_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const DOW = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+  const STATUS = { paid: 'ชำระครบ', deposit: 'มัดจำแล้ว', unpaid: 'ยังไม่ชำระ' };
+  const METHOD = { transfer: 'โอนเงิน', cash: 'เงินสด', unknown: 'ไม่ระบุ' };
+  const baht = (n) => '฿' + Math.round(n || 0).toLocaleString('th-TH');
+  const $ = (id) => document.getElementById(id);
+  const pad = (n) => String(n).padStart(2, '0');
+  const iso = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+  const thDate = (s) => { const [y, m, d] = s.split('-').map(Number); return `${d} ${TH_SHORT[m - 1]} ${String(y + 543).slice(2)}`; };
+  const addDays = (s, k) => { const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + k); return d.toISOString().slice(0, 10); };
+  const idOf = (date, room) => `${date}_r${room}`;
+  const owing = (b) => Math.max(0, (b.price || 0) - (b.paid || 0));
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+  const state = { bookings: new Map(), y: null, m: null, sel: null, filter: 'all', q: '', allMonths: false, loaded: false, canWrite: true, editing: null };
+  let db = null;
+
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 2200); }
+  function notice(msg) { const n = $('notice'); n.textContent = msg || ''; n.hidden = !msg; }
+
+  function monthBookings() {
+    const pre = `${state.y}-${pad(state.m + 1)}-`;
+    return [...state.bookings.values()].filter((b) => b.date.startsWith(pre));
+  }
+
+  function pickStartMonth() {
+    const now = new Date();
+    const cur = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+    const dates = [...state.bookings.values()].map((b) => b.date).sort();
+    const target = dates.some((d) => d.startsWith(cur)) || !dates.length ? cur : dates[dates.length - 1].slice(0, 7);
+    state.y = Number(target.slice(0, 4)); state.m = Number(target.slice(5, 7)) - 1;
+  }
+
+  function render() { renderKpis(); renderCalendar(); renderDay(); renderPayments(); renderTable(); }
+
+  function renderKpis() {
+    const list = monthBookings();
+    const days = new Date(state.y, state.m + 1, 0).getDate();
+    const cap = days * ROOMS.length;
+    const rev = list.reduce((s, b) => s + (b.price || 0), 0);
+    const got = list.reduce((s, b) => s + Math.min(b.paid || 0, b.price || 0), 0);
+    const owe = list.reduce((s, b) => s + owing(b), 0);
+    const items = [
+      { lab: 'ห้อง-คืนที่จอง', val: list.length.toLocaleString('th-TH'), sub: `จาก ${cap} ห้อง-คืน` },
+      { lab: 'อัตราการเข้าพัก', val: cap ? Math.round(list.length / cap * 100) + '%' : '—', sub: `ว่าง ${cap - list.length} ห้อง-คืน` },
+      { lab: 'ยอดค่าห้องรวม', val: baht(rev), sub: TH_MONTHS[state.m] + ' ' + (state.y + 543) },
+      { lab: 'รับเงินแล้ว', val: baht(got), sub: rev ? Math.round(got / rev * 100) + '% ของยอดรวม' : '', cls: 'good' },
+      { lab: 'ยอดค้างชำระ', val: baht(owe), sub: list.filter((b) => owing(b) > 0).length + ' รายการ', cls: owe > 0 ? 'bad' : '' },
+    ];
+    $('kpis').replaceChildren(...items.map((k) => {
+      const d = el('div', 'kpi ' + (k.cls || ''));
+      d.append(el('span', 'lab', k.lab), el('span', 'val', state.loaded ? k.val : '—'), el('span', 'sub', state.loaded ? k.sub : ''));
+      return d;
+    }));
+  }
+
+  function renderCalendar() {
+    $('mLabel').textContent = `${TH_MONTHS[state.m]} ${state.y + 543}`;
+    const first = new Date(state.y, state.m, 1).getDay();
+    const days = new Date(state.y, state.m + 1, 0).getDate();
+    const today = new Date(); const todayIso = iso(today.getFullYear(), today.getMonth(), today.getDate());
+    const cells = DOW.map((d) => el('div', 'dow', d));
+    for (let i = 0; i < first; i++) cells.push(el('div', 'day out'));
+    for (let d = 1; d <= days; d++) {
+      const date = iso(state.y, state.m, d);
+      const cell = el('div', 'day' + (date === state.sel ? ' sel' : '') + (date === todayIso ? ' today' : ''));
+      cell.dataset.date = date;
+      const booked = ROOMS.filter((r) => state.bookings.has(idOf(date, r.n))).length;
+      const dn = el('div', 'dn'); dn.append(el('span', null, String(d)), el('small', null, booked === 4 ? 'เต็ม' : `ว่าง ${4 - booked}`));
+      const rooms = el('div', 'rooms');
+      for (const r of ROOMS) {
+        const b = state.bookings.get(idOf(date, r.n));
+        const c = el('button', 'rc ' + (b ? 'busy' : 'free'), String(r.n));
+        c.type = 'button';
+        c.dataset.date = date; c.dataset.room = r.n;
+        c.title = `${r.name} ${r.type} · ${b ? 'ไม่ว่าง: ' + (b.guest || 'มีผู้จอง') : 'ว่าง'}`;
+        c.setAttribute('aria-label', `${thDate(date)} ${c.title}`);
+        rooms.append(c);
+      }
+      cell.append(dn, rooms);
+      cells.push(cell);
+    }
+    $('cal').replaceChildren(...cells);
+  }
+
+  function renderDay() {
+    const p = $('dayPanel');
+    if (!state.sel || !state.sel.startsWith(`${state.y}-${pad(state.m + 1)}`)) {
+      p.replaceChildren(el('p', 'note', 'เลือกวันในปฏิทินเพื่อดูว่าห้องไหนว่าง และใครเข้าพัก'));
+      return;
+    }
+    const h = el('h3', null, 'วันที่ ' + thDate(state.sel));
+    const slots = ROOMS.map((r) => {
+      const b = state.bookings.get(idOf(state.sel, r.n));
+      const s = el('div', 'slot ' + (b ? 'busy' : 'free'));
+      const who = el('div', 'who');
+      if (b) {
+        who.append(el('b', null, `${r.name} · ${b.guest || 'ไม่ระบุชื่อ'}`), el('span', null, `${baht(b.price)} · ${b.phone || r.type}`));
+        const pill = el('span', 'pill ' + b.status, STATUS[b.status] || '');
+        s.append(el('i', 'dot'), who, pill);
+      } else {
+        who.append(el('b', null, `${r.name} · ว่าง`), el('span', null, r.type));
+        const btn = el('button', 'btn', 'จอง'); btn.type = 'button';
+        btn.dataset.date = state.sel; btn.dataset.room = r.n; btn.hidden = !state.canWrite;
+        s.append(el('i', 'dot'), who, btn);
+      }
+      if (b) { s.style.cursor = 'pointer'; s.dataset.date = state.sel; s.dataset.room = r.n; }
+      return s;
+    });
+    p.replaceChildren(h, ...slots);
+  }
+
+  function statRow(label, cls, amount, count, total) {
+    const r = el('div', 'statrow');
+    const l = el('span'); l.append(el('span', 'pill ' + cls, label));
+    r.append(l, el('span', 'amt', baht(amount)), el('span', 'cnt', count + ' รายการ'));
+    return r;
+  }
+
+  function renderPayments() {
+    const list = monthBookings();
+    $('payNote').textContent = `ยอดของ ${TH_MONTHS[state.m]} ${state.y + 543} · ราคาที่ยังไม่ระบุนับเป็น ฿0`;
+    const got = list.reduce((s, b) => s + Math.min(b.paid || 0, b.price || 0), 0);
+    const owe = list.reduce((s, b) => s + owing(b), 0);
+    const tot = got + owe;
+    const bar = $('payBar');
+    const a = el('i'); a.style.background = 'var(--free)'; a.style.width = tot ? (got / tot * 100) + '%' : '0';
+    const b = el('i'); b.style.background = 'var(--busy)'; b.style.width = tot ? (owe / tot * 100) + '%' : '0';
+    bar.replaceChildren(a, b);
+    bar.title = `รับแล้ว ${baht(got)} · ค้าง ${baht(owe)}`;
+    $('byStatus').replaceChildren(...Object.keys(STATUS).map((k) => {
+      const g = list.filter((x) => x.status === k);
+      return statRow(STATUS[k], k, g.reduce((s, x) => s + (x.price || 0), 0), g.length);
+    }));
+    $('byMethod').replaceChildren(...Object.keys(METHOD).map((k) => {
+      const g = list.filter((x) => (x.method || 'unknown') === k);
+      return statRow(METHOD[k], 'm', g.reduce((s, x) => s + Math.min(x.paid || 0, x.price || 0), 0), g.length);
+    }));
+    const lastRow = el('div', 'statrow');
+    lastRow.append(el('span', 'note', 'ยอดในช่องทางชำระ = เงินที่รับแล้ว'), el('span'), el('span'));
+    $('byMethod').append(lastRow);
+  }
+
+  function renderTable() {
+    let list = state.allMonths ? [...state.bookings.values()] : monthBookings();
+    if (state.filter === 'owing') list = list.filter((b) => owing(b) > 0);
+    else if (state.filter !== 'all') list = list.filter((b) => b.status === state.filter);
+    const q = state.q.trim().toLowerCase();
+    if (q) list = list.filter((b) => [b.guest, b.phone, b.note].join(' ').toLowerCase().includes(q));
+    list.sort((a, b) => a.date.localeCompare(b.date) || a.room - b.room);
+    const tb = $('rows');
+    if (!list.length) {
+      const tr = el('tr'); const td = el('td', 'empty', state.loaded ? 'ไม่มีรายการตามเงื่อนไขนี้' : 'กำลังโหลดข้อมูลการจอง…');
+      td.colSpan = 10; tr.append(td); tb.replaceChildren(tr); return;
+    }
+    tb.replaceChildren(...list.map((b) => {
+      const tr = el('tr'); tr.dataset.date = b.date; tr.dataset.room = b.room;
+      const st = el('td'); st.append(el('span', 'pill ' + b.status, STATUS[b.status] || '-'));
+      const ow = owing(b);
+      const owTd = el('td', 'r', ow ? baht(ow) : '–'); if (ow) owTd.style.color = 'var(--busy)';
+      tr.append(el('td', 'num', thDate(b.date)), el('td', null, String(b.room)), el('td', null, b.guest || '-'),
+        el('td', 'hide-sm num', b.phone || ''), el('td', 'r', b.price ? baht(b.price) : '–'), el('td', 'r', b.paid ? baht(b.paid) : '–'),
+        owTd, st, el('td', 'hide-sm', METHOD[b.method] || METHOD.unknown), el('td', 'hide-sm nt', b.note || ''));
+      return tr;
+    }));
+  }
+
+  // ---------- editor ----------
+  const roomSel = $('fRoom');
+  roomSel.replaceChildren(...ROOMS.map((r) => new Option(`${r.name} · ${r.type}`, String(r.n))));
+
+  function updateCalc() {
+    const price = Number($('fPrice').value) || 0, paid = Number($('fPaid').value) || 0;
+    const nights = state.editing ? 1 : Math.max(1, Number($('fNights').value) || 1);
+    const c = $('calc'); c.replaceChildren();
+    c.append('ยอดรวม ', el('b', null, baht(price * nights)), nights > 1 ? ` (${nights} คืน)` : '', ' · คงค้าง ', el('b', null, baht(Math.max(0, price * nights - paid * nights))));
+  }
+  function autoStatus() {
+    const price = Number($('fPrice').value) || 0, paid = Number($('fPaid').value) || 0;
+    $('fStatus').value = paid <= 0 ? 'unpaid' : paid >= price ? 'paid' : 'deposit';
+  }
+
+  function openEditor(date, room) {
+    if (!state.canWrite) { toast('คุณดูได้อย่างเดียว แก้ไขการจองไม่ได้'); return; }
+    const b = date && room ? state.bookings.get(idOf(date, room)) : null;
+    state.editing = b ? b.id : null;
+    $('edTitle').textContent = b ? 'แก้ไขการจอง' : 'เพิ่มการจอง';
+    $('fDate').value = date || state.sel || iso(state.y, state.m, 1);
+    roomSel.value = String(room || 1);
+    $('fNights').value = 1; $('nightsWrap').hidden = !!b;
+    $('fGuest').value = b?.guest || ''; $('fPhone').value = b?.phone || '';
+    $('fPrice').value = b ? (b.price ?? '') : 590; $('fPaid').value = b ? (b.paid ?? '') : '';
+    $('fStatus').value = b?.status || 'unpaid'; $('fMethod').value = b?.method || 'transfer';
+    $('fNote').value = b?.note || '';
+    $('delBtn').hidden = !b; $('delBtn').textContent = 'ลบการจอง'; $('delBtn').classList.remove('solid'); delArmed = false;
+    $('edErr').hidden = true;
+    updateCalc();
+    $('editor').hidden = false;
+    $('fGuest').focus();
+  }
+  function closeEditor() { $('editor').hidden = true; state.editing = null; }
+  function showErr(msg) { const e = $('edErr'); e.textContent = msg; e.hidden = false; }
+
+  async function save() {
+    if (!db) { showErr('ยังเชื่อมต่อฐานข้อมูลไม่ได้ ลองเปิดหน้าใหม่อีกครั้ง'); return; }
+    const date = $('fDate').value, room = Number(roomSel.value);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { showErr('กรุณาเลือกวันที่'); return; }
+    const guest = $('fGuest').value.trim();
+    if (!guest) { showErr('กรุณาใส่ชื่อผู้จอง'); return; }
+    const base = {
+      room, guest, phone: $('fPhone').value.trim(),
+      price: Math.max(0, Number($('fPrice').value) || 0), paid: Math.max(0, Number($('fPaid').value) || 0),
+      status: $('fStatus').value, method: $('fMethod').value, note: $('fNote').value.trim(),
+      updatedAt: new Date().toISOString(),
+    };
+    const nights = state.editing ? 1 : Math.max(1, Math.min(30, Number($('fNights').value) || 1));
+    const dates = Array.from({ length: nights }, (_, i) => addDays(date, i));
+    const clash = dates.filter((d) => { const id = idOf(d, room); return state.bookings.has(id) && id !== state.editing; });
+    if (clash.length) { showErr(`ห้อง ${room} ไม่ว่างวันที่ ${clash.map(thDate).join(', ')} เลือกห้องหรือวันอื่น`); return; }
+    $('saveBtn').disabled = true;
+    try {
+      for (const d of dates) await db.doc('bookings/' + idOf(d, room)).set({ ...base, date: d });
+      if (state.editing && state.editing !== idOf(date, room)) await db.doc('bookings/' + state.editing).delete();
+      state.sel = date;
+      closeEditor();
+      toast(nights > 1 ? `บันทึกแล้ว ${nights} คืน` : 'บันทึกแล้ว');
+    } catch (e) {
+      if (e && e.code === 'invalid_argument') { state.canWrite = false; showErr('บัญชีนี้ไม่มีสิทธิ์แก้ไขการจอง'); }
+      else showErr('บันทึกไม่สำเร็จ ลองอีกครั้ง');
+    } finally { $('saveBtn').disabled = false; }
+  }
+
+  let delArmed = false;
+  async function del() {
+    if (!state.editing || !db) return;
+    if (!delArmed) { delArmed = true; $('delBtn').textContent = 'กดอีกครั้งเพื่อยืนยันการลบ'; $('delBtn').classList.add('solid'); return; }
+    try { await db.doc('bookings/' + state.editing).delete(); closeEditor(); toast('ลบการจองแล้ว'); }
+    catch { showErr('ลบไม่สำเร็จ ลองอีกครั้ง'); }
+  }
+
+  // ---------- events ----------
+  $('prevM').addEventListener('click', () => { state.m--; if (state.m < 0) { state.m = 11; state.y--; } render(); });
+  $('nextM').addEventListener('click', () => { state.m++; if (state.m > 11) { state.m = 0; state.y++; } render(); });
+  $('cal').addEventListener('click', (e) => {
+    const chip = e.target.closest('.rc');
+    if (chip) { state.sel = chip.dataset.date; render(); openEditor(chip.dataset.date, Number(chip.dataset.room)); return; }
+    const day = e.target.closest('.day[data-date]');
+    if (day) { state.sel = day.dataset.date; renderCalendar(); renderDay(); }
+  });
+  $('dayPanel').addEventListener('click', (e) => {
+    const t = e.target.closest('[data-room]');
+    if (t) openEditor(t.dataset.date, Number(t.dataset.room));
+  });
+  $('rows').addEventListener('click', (e) => {
+    const tr = e.target.closest('tr[data-date]');
+    if (tr) openEditor(tr.dataset.date, Number(tr.dataset.room));
+  });
+  document.querySelectorAll('.chip[data-f]').forEach((c) => c.addEventListener('click', () => {
+    state.filter = c.dataset.f;
+    document.querySelectorAll('.chip[data-f]').forEach((x) => x.setAttribute('aria-pressed', String(x === c)));
+    renderTable();
+  }));
+  $('allMonths').addEventListener('change', (e) => { state.allMonths = e.target.checked; renderTable(); });
+  $('q').addEventListener('input', (e) => { state.q = e.target.value; renderTable(); });
+  $('addBtn').addEventListener('click', () => openEditor(null, null));
+  $('cancelBtn').addEventListener('click', closeEditor);
+  $('saveBtn').addEventListener('click', save);
+  $('delBtn').addEventListener('click', del);
+  $('editor').addEventListener('click', (e) => { if (e.target === $('editor')) closeEditor(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('editor').hidden) closeEditor(); });
+  ['fPrice', 'fPaid'].forEach((id) => $(id).addEventListener('input', () => { autoStatus(); updateCalc(); }));
+  $('fNights').addEventListener('input', updateCalc);
+
+  // ---------- data ----------
+  const now = new Date(); state.y = now.getFullYear(); state.m = now.getMonth();
+  render();
+
+  (async () => {
+    if (!window.claude || !claude.use) { notice('เปิดหน้านี้ใน Claude เพื่อดูและแก้ไขการจอง'); return; }
+    const [dbNs, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+    db = dbNs;
+    if (!db) { notice('ยังโหลดข้อมูลการจองไม่ได้ กรุณาเข้าสู่ระบบแล้วเปิดหน้านี้ใหม่'); state.canWrite = false; $('addBtn').hidden = true; return; }
+    if (user) {
+      const can = await user.can('data.write');
+      if (can === false) { state.canWrite = false; $('addBtn').hidden = true; notice('คุณดูได้อย่างเดียว ขอสิทธิ์ผู้ร่วมแก้ไขจากเจ้าของเพื่อเพิ่มหรือแก้ไขการจอง'); }
+    }
+    let first = true;
+    db.collection('bookings').limit(1000).onSnapshot((snap) => {
+      state.bookings = new Map(snap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]));
+      state.loaded = true;
+      if (first) { first = false; pickStartMonth(); }
+      render();
+    }, () => notice('การเชื่อมต่อข้อมูลหลุด กรุณาเปิดหน้านี้ใหม่'));
+  })();
+})();
+</script>
