@@ -342,6 +342,7 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="acTitle">
     <h2 id="acTitle">จัดการสิทธิ์ผู้ใช้งาน</h2>
     <p class="note">ผู้ใช้เข้าสู่ระบบ claude.ai ด้วยบัญชี Gmail ของตัวเอง เปิดลิงก์นี้ แล้วกด "ขอสิทธิ์เข้าใช้งาน" คำขอจะขึ้นที่นี่ให้คุณอนุมัติ</p>
+    <p class="note">ผู้ดูแลระบบ: เชิญอีเมล Gmail ในเมนู Share เป็นระดับ Editor แล้วผู้นั้นจะได้สิทธิ์ผู้ดูแลระบบทันทีเมื่อเข้าสู่ระบบ ไม่ต้องขออนุมัติ</p>
     <p class="sec">คำขอที่รออนุมัติ</p>
     <div class="plist" id="reqList"></div>
     <p class="sec">ผู้มีสิทธิ์ใช้งาน</p>
@@ -409,7 +410,7 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
 
   const state = { bookings: new Map(), y: null, m: null, sel: null, filter: 'all', q: '', allMonths: false, loaded: false, canWrite: true, editing: null };
   let db = null;
-  const ROLE = { owner: 'เจ้าของ', staff: 'พนักงาน (แก้ไขได้)', viewer: 'ดูอย่างเดียว' };
+  const ROLE = { owner: 'เจ้าของ', admin: 'ผู้ดูแลระบบ', staff: 'พนักงาน (แก้ไขได้)', viewer: 'ดูอย่างเดียว' };
   let user = null, me = null, canDataWrite = null, gateState = 'checking';
   let members = new Map(), requests = new Map(), myRequest = null, membersLoaded = false, bookingsStarted = false;
 
@@ -813,7 +814,7 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
       membersLoaded = true;
       applyAccess();
     }, () => notice('การเชื่อมต่อข้อมูลหลุด กรุณาเปิดหน้านี้ใหม่'));
-    if (me.isOwner) {
+    if (me.isOwner || me.canEdit) {
       db.collection('requests').limit(500).onSnapshot((snap) => {
         requests = new Map(snap.docs.map((d) => [d.id, d.data()]));
         applyAccess();
@@ -840,6 +841,7 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
   function role() {
     if (!me || !me.id) return null;
     if (me.isOwner) return 'owner';
+    if (me.canEdit) return 'admin';
     return members.get(me.id)?.role || null;
   }
 
@@ -848,9 +850,9 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
     const allowed = !!r && !!ROLE[r];
     $('app').hidden = !allowed;
     $('gate').hidden = allowed;
-    state.canWrite = (r === 'owner' || r === 'staff') && canDataWrite !== false;
+    state.canWrite = (r === 'owner' || r === 'admin' || r === 'staff') && canDataWrite !== false;
     $('addBtn').hidden = !(allowed && state.canWrite);
-    $('accessBtn').hidden = r !== 'owner';
+    $('accessBtn').hidden = !(r === 'owner' || r === 'admin');
     $('accessBtn').textContent = requests.size ? `จัดการสิทธิ์ (${requests.size})` : 'จัดการสิทธิ์';
     renderWho(r);
     if (allowed) {
@@ -923,7 +925,7 @@ table.mt tfoot td { font-weight: 600; border-bottom: 0; background: var(--bg); }
     });
     $('reqList').replaceChildren(...(reqRows.length ? reqRows : [el('p', 'note', 'ไม่มีคำขอใหม่')]));
     const ownerRow = line(me.id, 'คุณ');
-    const opa = el('div', 'pa'); opa.append(el('span', 'pill role', ROLE.owner)); ownerRow.append(opa);
+    const opa = el('div', 'pa'); opa.append(el('span', 'pill role', ROLE[role()] || '')); ownerRow.append(opa);
     const memRows = memIds.map((id) => {
       const row = line(id, '');
       const pa = el('div', 'pa');
